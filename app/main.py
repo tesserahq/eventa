@@ -16,6 +16,8 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from app.telemetry import setup_tracing
 from app.exceptions.handlers import register_exception_handlers
 from app.core.logging_config import get_logger
+from app.ext.nats_subscriber import NatsSubscriber
+from app.events.handlers import EVENT_SUBSCRIPTIONS
 
 SKIP_PATHS = ["/gazettes/share/", "/health", "/openapi.json", "/docs"]
 
@@ -24,7 +26,68 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
     logger = get_logger()
     settings = get_settings()
 
-    app = FastAPI()
+    subscriber: NatsSubscriber | None = None
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI):
+        nonlocal subscriber
+        async with mcp_app.lifespan(app):
+            if not testing and settings.nats_subscriber_enabled:
+                logger.info("Main: Starting NATS subscriber")
+                try:
+                    subscriber = NatsSubscriber(
+                        servers=settings.nats_servers,
+                        client_name=settings.nats_client_id,
+                        client_secret=settings.nats_client_secret,
+                        stream_name=settings.nats_stream_name,
+                        durable_name=settings.nats_consumer_name,
+                    )
+                    app.state.nats_subscriber = subscriber
+                    for subscription in EVENT_SUBSCRIPTIONS:
+                        try:
+                            await subscriber.subscribe(
+                                subject=subscription.subject,
+                                handler=subscription.handler,
+                                queue=subscription.queue or settings.nats_queue_group,
+                                auto_ack=subscription.auto_ack,
+                                stream=subscription.stream or settings.nats_stream_name,
+                            )
+                            logger.info(
+                                "Main: Subscribed to subject '%s' (queue=%s)",
+                                subscription.subject,
+                                subscription.queue or settings.nats_queue_group,
+                            )
+                        except Exception as exc:
+                            logger.error(
+                                "Main: Failed to subscribe to NATS subject '%s'",
+                                subscription.subject,
+                                exc_info=exc,
+                            )
+                except Exception as exc:
+                    logger.error(
+                        "Main: Unable to initialize NATS subscriber", exc_info=exc
+                    )
+                    subscriber = None
+                    app.state.nats_subscriber = None
+            try:
+                yield
+            finally:
+                if subscriber is not None:
+                    logger.info("Main: Closing NATS subscriber")
+                    try:
+                        await subscriber.close()
+                    except Exception as exc:
+                        logger.error(
+                            "Main: Error while closing NATS subscriber", exc_info=exc
+                        )
+                    finally:
+                        app.state.nats_subscriber = None
+                        subscriber = None
+                else:
+                    app.state.nats_subscriber = None
+
+    app = FastAPI(lifespan=lifespan)
+    
     if settings.is_production:
         # Initialize Rollbar SDK with your server-side access token
         rollbar.init(

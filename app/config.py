@@ -69,6 +69,33 @@ class Settings(BaseSettings):
         default="https://quore-api.meeteventa.com",
         json_schema_extra={"env": "QUORE_API_URL"},
     )
+    nats_servers: list[str] = Field(
+        default=["nats://127.0.0.1:4222"], json_schema_extra={"env": "NATS_SERVERS"}
+    )
+    nats_cluster_name: str = Field(
+        default="linden-cluster", json_schema_extra={"env": "NATS_CLUSTER_NAME"}
+    )
+    nats_client_id: str = Field(
+        default="linden-client", json_schema_extra={"env": "NATS_CLIENT_ID"}
+    )
+    nats_client_secret: str = Field(
+        default="linden-secret", json_schema_extra={"env": "NATS_CLIENT_SECRET"}
+    )
+    nats_stream_name: str = Field(
+        default="EVT_LINDEN", json_schema_extra={"env": "NATS_STREAM_NAME"}
+    )
+    nats_publish_timeout: float = Field(
+        default=2.0, json_schema_extra={"env": "NATS_PUBLISH_TIMEOUT"}
+    )
+    nats_subscriber_enabled: bool = Field(
+        default=False, json_schema_extra={"env": "NATS_SUBSCRIBER_ENABLED"}
+    )
+    nats_consumer_name: str = Field(
+        default="linden-api-consumer", json_schema_extra={"env": "NATS_CONSUMER_NAME"}
+    )
+    nats_queue_group: str = Field(
+        default="linden-api-workers", json_schema_extra={"env": "NATS_QUEUE_GROUP"}
+    )
 
     @model_validator(mode="before")
     def set_database_url(cls, values):

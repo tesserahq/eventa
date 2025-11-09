@@ -72,6 +72,7 @@ def upgrade() -> None:
         sa.Column("time", sa.DateTime, nullable=False),
         sa.Column("tags", sa.ARRAY(sa.String), nullable=True),
         sa.Column("labels", postgresql.JSONB(astext_type=sa.Text()), nullable=True),
+        sa.Column("privy", sa.Boolean, default=False, nullable=False),
         sa.Column(
             "created_at", sa.DateTime, nullable=False, server_default=sa.text("now()")
         ),
