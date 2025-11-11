@@ -61,8 +61,8 @@ WORKDIR $PYSETUP_PATH
 
 COPY . $PYSETUP_PATH
 
-# Make sure start.sh is executable
-RUN chmod +x ./start.sh
+# Make sure start scripts are executable
+RUN chmod +x ./start.sh ./start_nats_worker.sh
 
 # Expose port for FastAPI
 EXPOSE 8000
