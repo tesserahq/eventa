@@ -34,6 +34,9 @@ class EventBase(BaseModel):
     labels: Optional[dict[str, Any]] = None
     """Labels applied to the event."""
 
+    privy: bool = False
+    """Whether the event is private. Defaults to False."""
+
 
 class EventCreate(EventBase):
     """Schema for creating a new event."""
@@ -53,6 +56,7 @@ class EventUpdate(BaseModel):
     time: Optional[datetime] = None
     tags: Optional[list[str]] = None
     labels: Optional[dict[str, Any]] = None
+    privy: Optional[bool] = None
 
 
 class EventInDB(EventBase):

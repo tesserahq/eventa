@@ -69,6 +69,11 @@ class Settings(BaseSettings):
         default="https://quore-api.meeteventa.com",
         json_schema_extra={"env": "QUORE_API_URL"},
     )
+    nats_enabled: bool = Field(default=False, json_schema_extra={"env": "NATS_ENABLED"})
+    nats_url: Optional[str] = Field(default=None, json_schema_extra={"env": "NATS_URL"})
+    nats_queue: Optional[str] = Field(
+        default=None, json_schema_extra={"env": "NATS_QUEUE"}
+    )
 
     @model_validator(mode="before")
     def set_database_url(cls, values):
