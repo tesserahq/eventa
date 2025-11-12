@@ -1,6 +1,7 @@
 import asyncio
 import sys
 from datetime import datetime, timezone
+from uuid import UUID
 from app.config import get_settings
 from app.core.logging_config import LoggingConfig, get_logger
 from app.services.event_service import EventService
@@ -8,10 +9,55 @@ from app.schemas.event import EventCreate
 from app.db import SessionLocal
 from faststream import FastStream
 from faststream.nats import NatsBroker
+from app.schemas.user import UserOnboard
+from app.services.user_service import UserService
+from tessera_sdk import IdentiesClient
+from tessera_sdk.utils.m2m_token import M2MTokenClient
 
 # Initialize logging configuration
 LoggingConfig()
 logger = get_logger("nats_worker")
+
+
+def fetch_user(
+    user_id: str,
+):
+
+    db = SessionLocal()
+    user_service = UserService(db)
+
+    # If the user doesn't exist, we need to fetch it from Identies
+    if user_service.get_user(user_id):
+        return
+
+    m2m_token = _get_m2m_token()
+
+    identies_client = IdentiesClient(
+        base_url=get_settings().identies_base_url,
+        # TODO: This is a temporary solution, we need to move this into jobs
+        timeout=320,  # Shorter timeout for middleware
+        max_retries=1,  # Fewer retries for middleware
+        api_token=m2m_token,
+    )
+
+    logger.info(f"Fetching user from Identies: {user_id}")
+    identies_user = identies_client.get_user(user_id)
+    logger.info(f"Identies user: {identies_user}")
+    user = UserOnboard(
+        id=identies_user.id,
+        email=identies_user.email,
+        username=identies_user.username,
+        first_name=identies_user.first_name,
+        last_name=identies_user.last_name,
+        avatar_url=identies_user.avatar_url,
+        provider=identies_user.provider,
+        verified=identies_user.verified,
+        verified_at=identies_user.verified_at,
+        confirmed_at=identies_user.confirmed_at,
+        external_id=identies_user.external_id,
+    )
+
+    user_service.onboard_user(user)
 
 
 async def _run_async() -> None:
@@ -69,11 +115,16 @@ async def _run_async() -> None:
                 tags=msg.get("tags"),
                 labels=msg.get("labels"),
                 privy=msg.get("privy", False),  # Default to False if not provided
+                user_id=msg.get("user_id"),
             )
 
             # Create event using EventService
             event_service = EventService(db)
             created_event = event_service.create_event(event_create)
+
+            # TODO: We need to move this into a task
+            fetch_user(msg.get("user_id"))
+
             logger.info(f"Event created successfully: {created_event.id}")
         except Exception as e:
             logger.error(f"Error creating event: {e}", exc_info=True)
@@ -84,6 +135,13 @@ async def _run_async() -> None:
 
     logger.info("Running FastStream app...")
     await app.run()
+
+
+def _get_m2m_token() -> str:
+    """
+    Get an M2M token for Quore.
+    """
+    return M2MTokenClient().get_token_sync().access_token
 
 
 def main() -> None:

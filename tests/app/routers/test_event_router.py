@@ -5,12 +5,15 @@ def test_list_events_by_tags_returns_matching_events(
     client, setup_event_factory, faker
 ):
     matching = setup_event_factory(tags=["alpha", "beta"])
-    setup_event_factory(tags=["beta", "gamma"])
+    setup_event_factory(
+        tags=["beta", "gamma"]
+    )  # This won't match since it doesn't have "alpha"
 
     response = client.get("/events", params=[("tags", "alpha"), ("tags", "beta")])
 
     assert response.status_code == 200
     payload = response.json()
+    # Only matching event should be returned since it has both "alpha" and "beta"
     assert payload["total"] == 1
     assert payload["items"][0]["id"] == str(matching.id)
 

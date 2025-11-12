@@ -1,3 +1,4 @@
+from sqlalchemy.orm import relationship, foreign
 from app.models.mixins import TimestampMixin, SoftDeleteMixin
 from sqlalchemy import Column, String, Boolean, DateTime, Index, text
 from sqlalchemy.dialects.postgresql import UUID
@@ -35,6 +36,11 @@ class User(Base, TimestampMixin, SoftDeleteMixin):
     verified = Column(Boolean, default=False)
     verified_at = Column(DateTime, nullable=True)
     external_id = Column(String, nullable=True)
+    events = relationship(
+        "Event",
+        primaryjoin="User.id == foreign(Event.user_id)",
+        back_populates="user",
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)

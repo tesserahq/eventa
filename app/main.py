@@ -53,12 +53,12 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
 
         app.add_middleware(
             UserOnboardingMiddleware,
-            identies_base_url=settings.identies_host,
+            identies_base_url=settings.identies_base_url,
             user_service_factory=user_service_factory,
         )
         app.add_middleware(
             AuthenticationMiddleware,
-            identies_base_url=settings.identies_host,
+            identies_base_url=settings.identies_base_url,
             skip_paths=SKIP_PATHS,
         )
 

@@ -57,7 +57,7 @@ class RedisGroup(BaseModel):
 
 class ExternalServicesGroup(BaseModel):
     vaulta_api_url: str
-    identies_host: Optional[str]
+    identies_base_url: Optional[str]
 
 
 class SystemSettingsGrouped(BaseModel):

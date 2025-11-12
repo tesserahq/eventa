@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 from uuid import UUID
-from sqlalchemy.orm import Query, Session
+from sqlalchemy.orm import Query, Session, joinedload
 from app.models.event import Event
 from app.schemas.event import EventCreate, EventUpdate
 from app.services.soft_delete_service import SoftDeleteService
@@ -29,7 +29,12 @@ class EventService(SoftDeleteService[Event]):
         Returns:
             Optional[Event]: The event or None if not found
         """
-        return self.db.query(Event).filter(Event.id == event_id).first()
+        return (
+            self.db.query(Event)
+            .options(joinedload(Event.user))
+            .filter(Event.id == event_id)
+            .first()
+        )
 
     def get_events(self, skip: int = 0, limit: int = 100) -> List[Event]:
         """
@@ -42,7 +47,13 @@ class EventService(SoftDeleteService[Event]):
         Returns:
             List[Event]: List of events
         """
-        return self.db.query(Event).offset(skip).limit(limit).all()
+        return (
+            self.db.query(Event)
+            .options(joinedload(Event.user))
+            .offset(skip)
+            .limit(limit)
+            .all()
+        )
 
     def get_events_query(self):
         """
@@ -52,7 +63,11 @@ class EventService(SoftDeleteService[Event]):
         Returns:
             Query: SQLAlchemy query object for events
         """
-        return self.db.query(Event).order_by(Event.created_at.desc())
+        return (
+            self.db.query(Event)
+            .options(joinedload(Event.user))
+            .order_by(Event.created_at.desc())
+        )
 
     def create_event(self, event: EventCreate) -> Event:
         """
@@ -68,7 +83,13 @@ class EventService(SoftDeleteService[Event]):
         self.db.add(db_event)
         self.db.commit()
         self.db.refresh(db_event)
-        return db_event
+        # Eager load user relationship after refresh
+        return (
+            self.db.query(Event)
+            .options(joinedload(Event.user))
+            .filter(Event.id == db_event.id)
+            .first()
+        )
 
     def update_event(self, event_id: UUID, event: EventUpdate) -> Optional[Event]:
         """
@@ -81,7 +102,12 @@ class EventService(SoftDeleteService[Event]):
         Returns:
             Optional[Event]: The updated event or None if not found
         """
-        db_event = self.db.query(Event).filter(Event.id == event_id).first()
+        db_event = (
+            self.db.query(Event)
+            .options(joinedload(Event.user))
+            .filter(Event.id == event_id)
+            .first()
+        )
         if db_event:
             update_data = event.model_dump(exclude_unset=True)
             for key, value in update_data.items():
@@ -134,17 +160,27 @@ class EventService(SoftDeleteService[Event]):
         Returns:
             List[Event]: Filtered list of events matching the criteria.
         """
-        query = self.db.query(Event)
+        query = self.db.query(Event).options(joinedload(Event.user))
         query = apply_filters(query, Event, filters)
         return query.all()
 
     def _build_tags_labels_query(
-        self, tags: List[str], labels: Optional[Dict[str, Any]] = None
+        self,
+        tags: List[str],
+        labels: Optional[Dict[str, Any]] = None,
+        privy: bool = False,
     ) -> Query:
         if not tags:
             raise ValueError("tags must be provided")
 
-        query = self.db.query(Event).filter(Event.tags.contains(tags))
+        # Use contains operator (@>) to check if the event tags array contains all provided tags
+        # This matches events that have ALL of the provided tags
+        query = (
+            self.db.query(Event)
+            .options(joinedload(Event.user))
+            .filter(Event.tags.contains(tags))
+            .filter(Event.privy == privy)
+        )
 
         if labels:
             query = query.filter(Event.labels.contains(labels))
@@ -152,7 +188,10 @@ class EventService(SoftDeleteService[Event]):
         return query.order_by(Event.created_at.desc())
 
     def get_events_by_tags_and_labels_query(
-        self, tags: List[str], labels: Optional[Dict[str, Any]] = None
+        self,
+        tags: List[str],
+        labels: Optional[Dict[str, Any]] = None,
+        privy: bool = False,
     ) -> Query:
         """
         Retrieve a SQLAlchemy query filtered by tags and optionally by labels.
@@ -164,7 +203,7 @@ class EventService(SoftDeleteService[Event]):
         Returns:
             Query: SQLAlchemy query configured with the provided filters.
         """
-        return self._build_tags_labels_query(tags, labels)
+        return self._build_tags_labels_query(tags, labels, privy)
 
     def get_events_by_tags_and_labels(
         self, tags: List[str], labels: Optional[Dict[str, Any]] = None

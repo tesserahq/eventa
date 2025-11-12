@@ -3,6 +3,8 @@ from uuid import UUID
 from datetime import datetime
 from pydantic import BaseModel
 
+from app.schemas.user import User
+
 
 class EventBase(BaseModel):
     """Base event model containing common event attributes."""
@@ -36,6 +38,9 @@ class EventBase(BaseModel):
 
     privy: bool = False
     """Whether the event is private. Defaults to False."""
+
+    user_id: Optional[UUID] = None
+    """User ID associated with the event."""
 
 
 class EventCreate(EventBase):
@@ -72,4 +77,5 @@ class EventInDB(EventBase):
 class Event(EventInDB):
     """Schema for event data returned in API responses."""
 
-    pass
+    user: Optional[User] = None
+    """User associated with the event. None if user_id doesn't exist in users table."""

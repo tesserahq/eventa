@@ -72,7 +72,7 @@ def get_system_settings(
 
     services_group = ExternalServicesGroup(
         vaulta_api_url=s.vaulta_api_url,
-        identies_host=s.identies_host,
+        identies_base_url=s.identies_base_url,
     )
 
     grouped = SystemSettingsGrouped(

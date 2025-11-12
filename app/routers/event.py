@@ -55,6 +55,7 @@ def list_events_by_tags(
             )
 
     query = EventService(db).get_events_by_tags_and_labels_query(
-        tags=tags, labels=labels_payload
+        tags=tags, labels=labels_payload, privy=False
     )
+    print(str(query))
     return paginate(db, query, params)

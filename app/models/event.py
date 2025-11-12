@@ -1,5 +1,5 @@
 from sqlalchemy.dialects.postgresql import JSONB, UUID, ARRAY
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship, foreign
 from app.models.mixins import TimestampMixin, SoftDeleteMixin
 from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String
 import uuid
@@ -25,6 +25,12 @@ class Event(Base, TimestampMixin, SoftDeleteMixin):
     tags = Column(ARRAY(String), nullable=True)
     labels = Column(JSONB, default=dict, nullable=False)  # Dictionary of labels
     privy = Column(Boolean, nullable=False, default=False)
+    user_id = Column(UUID(as_uuid=True), nullable=True)
+    user = relationship(
+        "User",
+        primaryjoin="foreign(Event.user_id) == User.id",
+        back_populates="events",
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
