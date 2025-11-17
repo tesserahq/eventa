@@ -74,6 +74,9 @@ class Settings(BaseSettings):
     nats_queue: Optional[str] = Field(
         default=None, json_schema_extra={"env": "NATS_QUEUE"}
     )
+    db_app_name: str = Field(
+        default="eventa-api", json_schema_extra={"env": "DB_APP_NAME"}
+    )
 
     @model_validator(mode="before")
     def set_database_url(cls, values):
