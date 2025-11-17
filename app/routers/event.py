@@ -1,5 +1,6 @@
 import json
 from typing import Annotated, Any, Dict, List, Optional
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -18,10 +19,17 @@ router = APIRouter(
 
 
 @router.get("", response_model=Page[Event], status_code=status.HTTP_200_OK)
-def list_events_by_tags(
+def list_events(
+    user_id: Annotated[
+        Optional[UUID],
+        Query(description="User ID to filter events by"),
+    ] = None,
     tags: Annotated[
-        List[str], Query(..., min_items=1, description="Event tags to match")
-    ],
+        Optional[List[str]],
+        Query(
+            description="Event tags to match (requires at least one tag if provided)"
+        ),
+    ] = None,
     labels: Annotated[
         Optional[str],
         Query(
@@ -31,11 +39,30 @@ def list_events_by_tags(
     params: Params = Depends(),
     db: Session = Depends(get_db),
 ):
-    """Return events filtered by tags and optionally by labels."""
-    if not tags:
+    """Return events filtered by user_id OR by tags/labels (not both)."""
+    # Validate that either user_id OR tags is provided, but not both
+    if user_id and tags:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot filter by both user_id and tags. Please use either user_id or tags/labels.",
+        )
+
+    if not user_id and not tags:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="At least one tag is required.",
+            detail="Either user_id or tags must be provided.",
+        )
+
+    # Filter by user_id
+    if user_id:
+        query = EventService(db).get_events_by_user_id_query(user_id=user_id)
+        return paginate(db, query, params)
+
+    # Filter by tags and optionally labels
+    if not tags or len(tags) == 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="At least one tag is required when filtering by tags.",
         )
 
     labels_payload: Optional[Dict[str, Any]] = None
@@ -57,5 +84,4 @@ def list_events_by_tags(
     query = EventService(db).get_events_by_tags_and_labels_query(
         tags=tags, labels=labels_payload, privy=False
     )
-    print(str(query))
     return paginate(db, query, params)

@@ -219,3 +219,20 @@ class EventService(SoftDeleteService[Event]):
             List[Event]: Events matching the provided filters ordered by creation date.
         """
         return self._build_tags_labels_query(tags, labels).all()
+
+    def get_events_by_user_id_query(self, user_id: UUID) -> Query:
+        """
+        Retrieve a SQLAlchemy query filtered by user_id.
+
+        Args:
+            user_id: The user ID to filter events by.
+
+        Returns:
+            Query: SQLAlchemy query configured with the user_id filter.
+        """
+        return (
+            self.db.query(Event)
+            .options(joinedload(Event.user))
+            .filter(Event.user_id == user_id)
+            .order_by(Event.created_at.desc())
+        )
