@@ -2756,23 +2756,23 @@ files = [
 
 [[package]]
 name = "redis"
-version = "5.3.1"
+version = "6.4.0"
 description = "Python client for Redis database and key-value store"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["main"]
 files = [
-    {file = "redis-5.3.1-py3-none-any.whl", hash = "sha256:dc1909bd24669cc31b5f67a039700b16ec30571096c5f1f0d9d2324bff31af97"},
-    {file = "redis-5.3.1.tar.gz", hash = "sha256:ca49577a531ea64039b5a36db3d6cd1a0c7a60c34124d46924a45b956e8cf14c"},
+    {file = "redis-6.4.0-py3-none-any.whl", hash = "sha256:f0544fa9604264e9464cdf4814e7d4830f74b165d52f2a330a760a88dd248b7f"},
+    {file = "redis-6.4.0.tar.gz", hash = "sha256:b01bc7282b8444e28ec36b261df5375183bb47a07eb9c603f284e89cbc5ef010"},
 ]
 
 [package.dependencies]
 async-timeout = {version = ">=4.0.3", markers = "python_full_version < \"3.11.3\""}
-PyJWT = ">=2.9.0"
 
 [package.extras]
-hiredis = ["hiredis (>=3.0.0)"]
-ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==23.2.1)", "requests (>=2.31.0)"]
+hiredis = ["hiredis (>=3.2.0)"]
+jwt = ["pyjwt (>=2.9.0)"]
+ocsp = ["cryptography (>=36.0.1)", "pyopenssl (>=20.0.1)", "requests (>=2.31.0)"]
 
 [[package]]
 name = "referencing"
@@ -3228,7 +3228,7 @@ full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart 
 
 [[package]]
 name = "tessera-sdk"
-version = "0.1.1"
+version = "0.1.2"
 description = "A Python SDK for Tessera with Identies integration, authentication middleware, and user onboarding"
 optional = false
 python-versions = ">=3.11"
@@ -3240,7 +3240,7 @@ develop = false
 cryptography = "^46.0.3"
 pydantic = {version = "^2.12.4", extras = ["email"]}
 pydantic-settings = "^2.9.1"
-redis = ">=5.0.1,<6.0.0"
+redis = "^6.2.0"
 requests = ">=2.25.0"
 sqlalchemy = "^2.0.39"
 starlette = ">=0.27.0"
@@ -3250,7 +3250,7 @@ urllib3 = ">=1.26.0"
 type = "git"
 url = "https://github.com/tesserahq/tessera-sdk-py.git"
 reference = "main"
-resolved_reference = "ee02ae0dd017658871151ab4ab2005e1813044c5"
+resolved_reference = "7491363612006a40b7025774b75d009612ac613d"
 
 [[package]]
 name = "text-unidecode"
@@ -3770,4 +3770,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.11,<3.14"
-content-hash = "de8f6efd93510e792645fa4ed0029ae1df3b17d1f0753fb1aa07ac5dad303099"
+content-hash = "f771b762bb167c59b65cc1c6df6196578d1c0f5822c6f491b4b347f9ed84afc0"
