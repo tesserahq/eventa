@@ -72,7 +72,7 @@ class Settings(BaseSettings):
     nats_enabled: bool = Field(default=False, json_schema_extra={"env": "NATS_ENABLED"})
     nats_url: Optional[str] = Field(default=None, json_schema_extra={"env": "NATS_URL"})
     nats_queue: Optional[str] = Field(
-        default=None, json_schema_extra={"env": "NATS_QUEUE"}
+        default="eventa_worker", json_schema_extra={"env": "NATS_QUEUE"}
     )
     db_app_name: str = Field(
         default="eventa-api", json_schema_extra={"env": "DB_APP_NAME"}

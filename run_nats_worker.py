@@ -8,7 +8,8 @@ from app.services.event_service import EventService
 from app.schemas.event import EventCreate
 from app.db import SessionLocal
 from faststream import FastStream
-from faststream.nats import NatsBroker
+from faststream.nats import NatsBroker, JStream
+from nats.js.api import DeliverPolicy
 from app.schemas.user import UserOnboard
 from app.services.user_service import UserService
 from tessera_sdk import IdentiesClient
@@ -87,9 +88,22 @@ async def _run_async() -> None:
 
     # Subscribe to all subjects under com.mylinden using the '>' wildcard (matches all levels)
     # Only pass queue parameter if it's configured (FastStream expects a string, not None)
+    # JetStream stream definition (adjust name/subjects to match your server config)
+    js_stream = JStream(
+        name="EVT_LINDEN",  # must match the JetStream stream name
+        subjects=["com.mylinden.>"],
+        declare=False,  # set True if you want FastStream to create/update it
+    )
+
     subscriber_kwargs = {"queue": settings.nats_queue} if settings.nats_queue else {}
 
-    @broker.subscriber("com.mylinden.>", **subscriber_kwargs)
+    @broker.subscriber(
+        "com.mylinden.>",
+        stream=js_stream,  # THIS makes it JetStream
+        durable="eventa_worker",  # durable consumer name
+        deliver_policy=DeliverPolicy.LAST,  # or DeliverPolicy.LAST, etc.
+        **subscriber_kwargs,
+    )
     async def handler(msg: dict) -> None:
         """Handle incoming NATS events and store them in the database."""
         logger.info(f"Received message: {msg}")
