@@ -67,6 +67,7 @@ async def _run_async() -> None:
     logger.info("Starting NATS worker...")
     logger.info(f"NATS URL: {settings.nats_url}")
     logger.info(f"NATS Enabled: {settings.nats_enabled}")
+    subjects = settings.nats_subjects.split(",")
 
     if not settings.nats_enabled:
         logger.error("NATS is not enabled in settings!")
@@ -78,7 +79,7 @@ async def _run_async() -> None:
     @app.on_startup
     async def on_startup():
         logger.info("NATS worker started and connected!")
-        logger.info(f"Subscribed to: com.mylinden.> (JetStream stream)")
+        logger.info(f"Subscribed to: {subjects} (JetStream stream)")
         if settings.nats_queue:
             logger.info(f"Using queue: {settings.nats_queue}")
 
@@ -90,17 +91,17 @@ async def _run_async() -> None:
     # Only pass queue parameter if it's configured (FastStream expects a string, not None)
     # JetStream stream definition (adjust name/subjects to match your server config)
     js_stream = JStream(
-        name="EVT_LINDEN",  # must match the JetStream stream name
-        subjects=["com.mylinden.>"],
+        name=settings.nats_stream_name,  # must match the JetStream stream name
+        # subjects="com.identies.>",
         declare=False,  # set True if you want FastStream to create/update it
     )
 
     subscriber_kwargs = {"queue": settings.nats_queue} if settings.nats_queue else {}
 
     @broker.subscriber(
-        "com.mylinden.>",
+        "com.>",
         stream=js_stream,  # THIS makes it JetStream
-        durable="eventa_worker",  # durable consumer name
+        durable=settings.nats_queue,  # durable consumer name
         deliver_policy=DeliverPolicy.LAST,  # or DeliverPolicy.LAST, etc.
         **subscriber_kwargs,
     )
