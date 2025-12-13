@@ -61,7 +61,7 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
             AuthenticationMiddleware,
             identies_base_url=settings.identies_base_url,
             skip_paths=SKIP_PATHS,
-            database_manager=db_manager,
+            user_service_factory=user_service_factory,
         )
 
     else:
