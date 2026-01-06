@@ -1,0 +1,8 @@
+site_name: Eventa API Documentation
+site_description: Eventa service documentation for Eventa
+
+nav:
+  - Home: index.md
+
+plugins:
+  - techdocs-core
