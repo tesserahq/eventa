@@ -64,7 +64,7 @@ faststream = {extras = ["nats"], version = "^0.6.3"}
 
 [tool.poetry.dependencies.uvicorn]
 extras = [ "standard" ]
-version = "^0.23.2"
+version = "^0.40.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.0.0"
