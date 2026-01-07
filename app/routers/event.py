@@ -10,11 +10,44 @@ from fastapi_pagination.ext.sqlalchemy import paginate  # type: ignore[import-no
 from app.db import get_db
 from app.schemas.event import Event
 from app.services.event_service import EventService
+from app.auth.rbac import build_rbac_dependencies
+from fastapi import Request
+
 
 router = APIRouter(
     prefix="/events",
     tags=["events"],
     responses={404: {"description": "Not found"}},
+)
+
+
+async def infer_domain(request: Request) -> Optional[str]:
+    """
+    Infer the domain from the query parameter 'tags' by extracting the value for 'account_id'.
+    The 'tags' parameter is expected to be an array of strings in the format 'key:value'.
+    Returns the value of 'account_id' if present, otherwise returns '*'.
+    """
+    # First, check for explicit domain parameter
+    domain = request.query_params.get("domain")
+    if domain:
+        return domain
+
+    # TODO: Remove this funcionality once the portal updates to use the domain parameter
+    tag_key = "account_id"
+    # tags can be present multiple times (?tags=foo:bar&tags=account_id:1234)
+    tags = request.query_params.getlist("tags")
+    for tag in tags:
+        if ":" in tag:
+            key, value = tag.split(":", 1)
+            if key == tag_key:
+                return value
+    return "*"
+
+
+RESOURCE = "event"
+rbac = build_rbac_dependencies(
+    resource=RESOURCE,
+    domain_resolver=infer_domain,
 )
 
 
@@ -38,6 +71,7 @@ def list_events(
     ] = None,
     params: Params = Depends(),
     db: Session = Depends(get_db),
+    _authorized: bool = Depends(rbac["read"]),
 ):
     """Return events filtered by user_id OR by tags/labels (not both)."""
     # Validate that either user_id OR tags is provided, but not both

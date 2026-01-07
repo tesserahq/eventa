@@ -12,6 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from alembic import command
 from alembic.config import Config
 from faker import Faker
+from tessera_sdk.utils.auth import get_current_user
 
 
 # Patch authorize BEFORE importing create_app (which imports routers)
@@ -179,8 +180,13 @@ def create_client_fixture(user_fixture_name):
         # Store the test user in the app state so it can be accessed by the mock dependency
         app.state.test_user = test_user
 
+        def override_get_current_user():
+            """Override get_current_user to return the test user."""
+            return test_user
+
         # Override dependencies
         app.dependency_overrides[get_db] = override_get_db
+        app.dependency_overrides[get_current_user] = override_get_current_user
 
         # Create test client with auth headers
         test_client = TestClient(app)

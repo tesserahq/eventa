@@ -1,3 +1,3 @@
-from . import event
+from . import event, me
 
-__all__ = ["event"]
+__all__ = ["event", "me"]
