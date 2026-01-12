@@ -42,6 +42,9 @@ class EventBase(BaseModel):
     user_id: Optional[UUID] = None
     """User ID associated with the event."""
 
+    project_id: Optional[UUID] = None
+    """Project ID associated with the event."""
+
 
 class EventCreate(EventBase):
     """Schema for creating a new event."""
