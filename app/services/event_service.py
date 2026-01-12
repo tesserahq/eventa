@@ -166,22 +166,21 @@ class EventService(SoftDeleteService[Event]):
 
     def _build_tags_labels_query(
         self,
-        tags: List[str],
+        tags: Optional[List[str]] = None,
         labels: Optional[Dict[str, Any]] = None,
         privy: bool = False,
         project_id: Optional[UUID] = None,
     ) -> Query:
-        if not tags:
-            raise ValueError("tags must be provided")
 
         # Use contains operator (@>) to check if the event tags array contains all provided tags
         # This matches events that have ALL of the provided tags
         query = (
             self.db.query(Event)
             .options(joinedload(Event.user))
-            .filter(Event.tags.contains(tags))
             .filter(Event.privy == privy)
         )
+        if tags:
+            query = query.filter(Event.tags.contains(tags))
 
         if project_id is not None:
             query = query.filter(Event.project_id == project_id)
@@ -193,7 +192,7 @@ class EventService(SoftDeleteService[Event]):
 
     def get_events_by_tags_and_labels_query(
         self,
-        tags: List[str],
+        tags: Optional[List[str]] = None,
         labels: Optional[Dict[str, Any]] = None,
         privy: bool = False,
         project_id: Optional[UUID] = None,

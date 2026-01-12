@@ -32,15 +32,6 @@ async def infer_project(request: Request) -> Optional[str]:
     if project_id:
         return project_id
 
-    # TODO: Remove this funcionality once the portal updates to use the domain parameter
-    tag_key = "account_id"
-    # tags can be present multiple times (?tags=foo:bar&tags=account_id:1234)
-    tags = request.query_params.getlist("tags")
-    for tag in tags:
-        if ":" in tag:
-            key, value = tag.split(":", 1)
-            if key == tag_key:
-                return value
     return "*"
 
 
@@ -74,24 +65,6 @@ def list_events(
     _authorized: bool = Depends(rbac["read"]),
 ):
     """Return events filtered by user_id OR by tags/labels (not both)."""
-
-    # TODO: This is a temporary fix to allow filtering by project_id.
-    # If the project id is not present, check for the tags as we are doing in "infer_project" function.
-    if not project_id:
-        for tag in tags or []:
-            if ":" in tag:
-                key, value = tag.split(":", 1)
-                if key == "account_id":
-                    project_id = UUID(value)
-                    break
-
-    # Validate that tags is provided
-    # Filter by tags and optionally labels
-    if not tags or len(tags) == 0:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="At least one tag is required when filtering by tags.",
-        )
 
     labels_payload: Optional[Dict[str, Any]] = None
     if labels:
