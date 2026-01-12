@@ -17,6 +17,7 @@ def _build_event_data(faker, overrides: dict | None = None) -> dict:
         "time": faker.date_time(tzinfo=timezone.utc),
         "tags": faker.words(nb=3),
         "labels": {"environment": faker.random_element(elements=("prod", "dev", "qa"))},
+        "project_id": "704894b7-f2de-4e02-824a-2c4b6ecf08b6",
     }
 
     if overrides:

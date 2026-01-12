@@ -169,6 +169,7 @@ class EventService(SoftDeleteService[Event]):
         tags: List[str],
         labels: Optional[Dict[str, Any]] = None,
         privy: bool = False,
+        project_id: Optional[UUID] = None,
     ) -> Query:
         if not tags:
             raise ValueError("tags must be provided")
@@ -182,6 +183,9 @@ class EventService(SoftDeleteService[Event]):
             .filter(Event.privy == privy)
         )
 
+        if project_id is not None:
+            query = query.filter(Event.project_id == project_id)
+
         if labels:
             query = query.filter(Event.labels.contains(labels))
 
@@ -192,6 +196,7 @@ class EventService(SoftDeleteService[Event]):
         tags: List[str],
         labels: Optional[Dict[str, Any]] = None,
         privy: bool = False,
+        project_id: Optional[UUID] = None,
     ) -> Query:
         """
         Retrieve a SQLAlchemy query filtered by tags and optionally by labels.
@@ -203,7 +208,7 @@ class EventService(SoftDeleteService[Event]):
         Returns:
             Query: SQLAlchemy query configured with the provided filters.
         """
-        return self._build_tags_labels_query(tags, labels, privy)
+        return self._build_tags_labels_query(tags, labels, privy, project_id)
 
     def get_events_by_tags_and_labels(
         self, tags: List[str], labels: Optional[Dict[str, Any]] = None

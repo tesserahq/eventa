@@ -21,16 +21,16 @@ router = APIRouter(
 )
 
 
-async def infer_domain(request: Request) -> Optional[str]:
+async def infer_project(request: Request) -> Optional[str]:
     """
-    Infer the domain from the query parameter 'tags' by extracting the value for 'account_id'.
+    Infer the project from the query parameter 'tags' by extracting the value for 'project_id'.
     The 'tags' parameter is expected to be an array of strings in the format 'key:value'.
-    Returns the value of 'account_id' if present, otherwise returns '*'.
+    Returns the value of 'project_id' if present, otherwise returns '*'.
     """
-    # First, check for explicit domain parameter
-    domain = request.query_params.get("domain")
-    if domain:
-        return domain
+    # First, check for explicit project parameter
+    project_id = request.query_params.get("project_id")
+    if project_id:
+        return project_id
 
     # TODO: Remove this funcionality once the portal updates to use the domain parameter
     tag_key = "account_id"
@@ -47,15 +47,15 @@ async def infer_domain(request: Request) -> Optional[str]:
 RESOURCE = "event"
 rbac = build_rbac_dependencies(
     resource=RESOURCE,
-    domain_resolver=infer_domain,
+    project_resolver=infer_project,
 )
 
 
 @router.get("", response_model=Page[Event], status_code=status.HTTP_200_OK)
 def list_events(
-    user_id: Annotated[
+    project_id: Annotated[
         Optional[UUID],
-        Query(description="User ID to filter events by"),
+        Query(description="Project ID to filter events by"),
     ] = None,
     tags: Annotated[
         Optional[List[str]],
@@ -74,24 +74,18 @@ def list_events(
     _authorized: bool = Depends(rbac["read"]),
 ):
     """Return events filtered by user_id OR by tags/labels (not both)."""
-    # Validate that either user_id OR tags is provided, but not both
-    if user_id and tags:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot filter by both user_id and tags. Please use either user_id or tags/labels.",
-        )
 
-    if not user_id and not tags:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Either user_id or tags must be provided.",
-        )
+    # TODO: This is a temporary fix to allow filtering by project_id.
+    # If the project id is not present, check for the tags as we are doing in "infer_project" function.
+    if not project_id:
+        for tag in tags or []:
+            if ":" in tag:
+                key, value = tag.split(":", 1)
+                if key == "account_id":
+                    project_id = UUID(value)
+                    break
 
-    # Filter by user_id
-    if user_id:
-        query = EventService(db).get_events_by_user_id_query(user_id=user_id)
-        return paginate(db, query, params)
-
+    # Validate that tags is provided
     # Filter by tags and optionally labels
     if not tags or len(tags) == 0:
         raise HTTPException(
@@ -116,6 +110,6 @@ def list_events(
             )
 
     query = EventService(db).get_events_by_tags_and_labels_query(
-        tags=tags, labels=labels_payload, privy=False
+        tags=tags, labels=labels_payload, privy=False, project_id=project_id
     )
     return paginate(db, query, params)

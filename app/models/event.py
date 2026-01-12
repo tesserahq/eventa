@@ -26,6 +26,7 @@ class Event(Base, TimestampMixin, SoftDeleteMixin):
     labels = Column(JSONB, default=dict, nullable=False)  # Dictionary of labels
     privy = Column(Boolean, nullable=False, default=False)
     user_id = Column(UUID(as_uuid=True), nullable=True)
+    project_id = Column(UUID(as_uuid=True), nullable=True)
     user = relationship(
         "User",
         primaryjoin="foreign(Event.user_id) == User.id",
