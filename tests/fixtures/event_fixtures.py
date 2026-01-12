@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import timezone
 import pytest
 from app.models.event import Event
 

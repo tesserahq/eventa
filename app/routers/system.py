@@ -1,7 +1,5 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy.orm import Session
-from app.db import get_db
 from app.schemas.system import (
     GeneralGroup,
     SystemSettingsGrouped,

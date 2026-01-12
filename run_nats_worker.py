@@ -1,7 +1,6 @@
 import asyncio
 import sys
 from datetime import datetime, timezone
-from uuid import UUID
 from app.config import get_settings
 from app.core.logging_config import LoggingConfig, get_logger
 from app.services.event_service import EventService

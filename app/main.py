@@ -1,5 +1,4 @@
 import logging
-from app.middleware.db_session import DBSessionMiddleware
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings

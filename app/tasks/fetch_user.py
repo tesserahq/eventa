@@ -1,13 +1,10 @@
 from uuid import UUID
-from datetime import datetime
-from typing import Optional
 
 from app.config import get_settings
 from app.db import SessionLocal
 from app.core.celery_app import celery_app
 
 # Import heavy dependencies only when task executes (lazy loading)
-from app.core.logging_config import get_logger
 from app.schemas.user import UserOnboard
 from app.services.user_service import UserService
 from tessera_sdk import IdentiesClient

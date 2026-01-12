@@ -1,7 +1,7 @@
 from sqlalchemy.dialects.postgresql import JSONB, UUID, ARRAY
-from sqlalchemy.orm import Mapped, mapped_column, relationship, foreign
+from sqlalchemy.orm import relationship
 from app.models.mixins import TimestampMixin, SoftDeleteMixin
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, Column, DateTime, String
 import uuid
 
 from app.db import Base
