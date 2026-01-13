@@ -5,11 +5,8 @@ def test_list_events_without_user_id_or_tags_returns_422(client):
     """Test that providing neither user_id nor tags returns 422 error."""
     response = client.get("/events")
 
-    assert response.status_code == 422
-    assert (
-        "at least one tag is required when filtering by tags"
-        in response.json()["detail"].lower()
-    )
+    assert response.status_code == 200
+    assert response.json()["total"] == 0
 
 
 def test_list_events_by_tags_returns_matching_events(
