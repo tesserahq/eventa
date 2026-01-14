@@ -7,3 +7,5 @@
 ## Overview
 
 **Eventa** stores events in a structured, searchable timeline. It provides fast filtering, clean queries, and a simple way to explore what happened and when.
+
+![Alt](https://repobeats.axiom.co/api/embed/22ad050adb942c0fb278e0b83abbc82f58154947.svg "Repobeats analytics image")
