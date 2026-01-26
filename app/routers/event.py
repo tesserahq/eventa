@@ -13,7 +13,6 @@ from app.services.event_service import EventService
 from app.auth.rbac import build_rbac_dependencies
 from fastapi import Request
 
-
 router = APIRouter(
     prefix="/events",
     tags=["events"],
