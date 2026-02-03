@@ -40,8 +40,7 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
         # Initialize Rollbar SDK with your server-side access token
         rollbar.init(
             settings.rollbar_access_token,
-            environment=settings.environment,
-            handler="async",
+            environment=settings.environment
         )
 
         # Report ERROR and above to Rollbar
@@ -64,12 +63,10 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
 
         app.add_middleware(
             UserOnboardingMiddleware,
-            identies_base_url=settings.identies_base_url,
             user_service_factory=user_service_factory,
         )
         app.add_middleware(
             AuthenticationMiddleware,
-            identies_base_url=settings.identies_base_url,
             skip_paths=SKIP_AUTH_PATHS,
             user_service_factory=user_service_factory,
         )
