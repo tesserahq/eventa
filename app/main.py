@@ -38,10 +38,7 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
     app = FastAPI()
     if settings.is_production:
         # Initialize Rollbar SDK with your server-side access token
-        rollbar.init(
-            settings.rollbar_access_token,
-            environment=settings.environment
-        )
+        rollbar.init(settings.rollbar_access_token, environment=settings.environment)
 
         # Report ERROR and above to Rollbar
         rollbar_handler = RollbarHandler()
