@@ -83,10 +83,8 @@ def _ensure_user_onboarded(db: Session, user_id: str) -> None:
         # User doesn't exist, fetch from Identies and onboard
         m2m_token = _get_m2m_token()
         identies_client = IdentiesClient(
-            base_url=get_settings().identies_base_url,
             # TODO: This is a temporary solution, we need to move this into jobs
             timeout=320,  # Shorter timeout for middleware
-            max_retries=1,  # Fewer retries for middleware
             api_token=m2m_token,
         )
 
