@@ -92,7 +92,6 @@ def _ensure_user_onboarded(db: Session, user_id: str) -> None:
         user = UserOnboard(
             id=UUID(identies_user.id),
             email=identies_user.email,
-            username=identies_user.username,
             first_name=identies_user.first_name,
             last_name=identies_user.last_name,
             avatar_url=identies_user.avatar_url,

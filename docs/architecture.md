@@ -56,7 +56,6 @@ The `User` model represents users in the system, primarily synced from the Ident
 **Key Fields:**
 - `id` (UUID): Primary key
 - `email` (String): Unique email address
-- `username` (String, optional): Unique username
 - `first_name`, `last_name` (String): User's name
 - `external_id` (String, optional): ID from external identity provider
 - `provider` (String, optional): Identity provider name (e.g., "google", "github")
@@ -71,7 +70,6 @@ The `User` model represents users in the system, primarily synced from the Ident
 **Indexes:**
 - Unique index on `external_id` (where not null)
 - Unique constraint on `email`
-- Unique constraint on `username` (where not null)
 
 **Features:**
 - Supports soft deletion via `SoftDeleteMixin`
