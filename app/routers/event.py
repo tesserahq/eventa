@@ -14,7 +14,7 @@ from app.auth.rbac import build_rbac_dependencies
 from fastapi import Request
 
 router = APIRouter(
-    prefix="/events",
+    prefix="",
     tags=["events"],
     responses={404: {"description": "Not found"}},
 )
@@ -34,14 +34,22 @@ async def infer_project(request: Request) -> Optional[str]:
     return "*"
 
 
+async def infer_domain(request: Request) -> Optional[str]:
+    return "*"
+
+
 RESOURCE = "event"
 rbac = build_rbac_dependencies(
     resource=RESOURCE,
     project_resolver=infer_project,
 )
+admin_rbac = build_rbac_dependencies(
+    resource=RESOURCE,
+    project_resolver=infer_domain,
+)
 
 
-@router.get("", response_model=Page[Event], status_code=status.HTTP_200_OK)
+@router.get("/events", response_model=Page[Event], status_code=status.HTTP_200_OK)
 def list_events(
     project_id: Annotated[
         Optional[UUID],
@@ -84,4 +92,67 @@ def list_events(
     query = EventService(db).get_events_by_tags_and_labels_query(
         tags=tags, labels=labels_payload, privy=False, project_id=project_id
     )
+    return paginate(db, query, params)
+
+
+@router.get(
+    "/projects/{project_id}/events",
+    response_model=Page[Event],
+    status_code=status.HTTP_200_OK,
+)
+def list_project_events(
+    project_id: UUID,
+    tags: Annotated[
+        Optional[List[str]],
+        Query(
+            description="Event tags to match (requires at least one tag if provided)"
+        ),
+    ] = None,
+    labels: Annotated[
+        Optional[str],
+        Query(
+            description="Optional JSON object containing label key/value pairs to match"
+        ),
+    ] = None,
+    params: Params = Depends(),
+    db: Session = Depends(get_db),
+    _authorized: bool = Depends(admin_rbac["read"]),
+):
+    labels_payload: Optional[Dict[str, Any]] = None
+    if labels:
+        try:
+            parsed_labels = json.loads(labels)
+            if not isinstance(parsed_labels, dict):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="labels must be a JSON object",
+                )
+            labels_payload = parsed_labels
+        except json.JSONDecodeError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="labels parameter must be valid JSON",
+            )
+
+    query = EventService(db).get_events_by_tags_and_labels_query(
+        tags=tags,
+        labels=labels_payload,
+        privy=False,
+        project_id=project_id,
+    )
+    return paginate(db, query, params)
+
+
+@router.get(
+    "/users/{user_id}/events",
+    response_model=Page[Event],
+    status_code=status.HTTP_200_OK,
+)
+def list_user_events(
+    user_id: UUID,
+    params: Params = Depends(),
+    db: Session = Depends(get_db),
+    _authorized: bool = Depends(admin_rbac["read"]),
+):
+    query = EventService(db).get_events_by_user_id_query(user_id=user_id)
     return paginate(db, query, params)
