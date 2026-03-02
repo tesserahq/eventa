@@ -95,6 +95,22 @@ def list_events(
     return paginate(db, query, params)
 
 
+@router.get("/events/{event_id}", response_model=Event, status_code=status.HTTP_200_OK)
+def get_event(
+    event_id: UUID,
+    db: Session = Depends(get_db),
+    _authorized: bool = Depends(admin_rbac["read"]),
+):
+    event = EventService(db).get_event(event_id=event_id)
+    if event is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Event not found",
+        )
+
+    return event
+
+
 @router.get(
     "/projects/{project_id}/events",
     response_model=Page[Event],

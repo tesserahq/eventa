@@ -53,6 +53,16 @@ def test_list_events_by_tags_with_labels(client, setup_event_factory):
     assert payload["items"][0]["id"] == str(matching.id)
 
 
+def test_get_event_by_id_returns_event(client, setup_event):
+    event = setup_event
+
+    response = client.get(f"/events/{event.id}")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["id"] == str(event.id)
+
+
 def test_list_events_by_tags_invalid_labels_payload_returns_400(client):
     response = client.get(
         "/events",
