@@ -1,18 +1,19 @@
 from typing import Any, Dict, List, Optional
 from uuid import UUID
 from sqlalchemy.orm import Query, Session, joinedload
+
 from app.models.event import Event
 from app.schemas.event import EventCreate, EventUpdate
-from app.services.soft_delete_service import SoftDeleteService
+from app.repositories.soft_delete_repository import SoftDeleteRepository
 from app.utils.db.filtering import apply_filters
 
 
-class EventService(SoftDeleteService[Event]):
-    """Service class for managing event CRUD operations."""
+class EventRepository(SoftDeleteRepository[Event]):
+    """Repository class for managing event CRUD operations."""
 
     def __init__(self, db: Session):
         """
-        Initialize the event service.
+        Initialize the event repository.
 
         Args:
             db: Database session

@@ -9,8 +9,8 @@ from app.core.logging_config import get_logger
 from app.db import SessionLocal
 from app.schemas.event import EventCreate
 from app.schemas.user import UserOnboard
-from app.services.event_service import EventService
-from app.services.user_service import UserService
+from app.repositories.event_repository import EventRepository
+from app.repositories.user_repository import UserRepository
 from tessera_sdk import IdentiesClient
 from tessera_sdk.utils.m2m_token import M2MTokenClient
 
@@ -47,9 +47,9 @@ def process_nats_event_task(msg: dict) -> None:
             project_id=msg.get("project_id"),
         )
 
-        # Create event using EventService
-        event_service = EventService(db)
-        created_event = event_service.create_event(event_create)
+        # Create event using EventRepository
+        event_repository = EventRepository(db)
+        created_event = event_repository.create_event(event_create)
 
         # Ensure user is onboarded if user_id is provided
         user_id = msg.get("user_id")
@@ -71,11 +71,11 @@ def _ensure_user_onboarded(db: Session, user_id: str) -> None:
     and if not, fetching from Identies and onboarding them.
     """
     try:
-        user_service = UserService(db)
+        user_repository = UserRepository(db)
         user_uuid = UUID(user_id)
 
         # Check if user is already onboarded
-        existing_user = user_service.get_user(user_uuid)
+        existing_user = user_repository.get_user(user_uuid)
         if existing_user:
             logger.debug(f"User already onboarded: {user_id}")
             return
@@ -101,7 +101,7 @@ def _ensure_user_onboarded(db: Session, user_id: str) -> None:
             confirmed_at=identies_user.confirmed_at,
             external_id=identies_user.external_id,
         )
-        user_service.onboard_user(user)
+        user_repository.onboard_user(user)
         logger.info(f"User onboarded successfully: {user.id}")
     except Exception as e:
         # Log error but don't fail the event processing

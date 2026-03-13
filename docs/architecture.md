@@ -95,7 +95,7 @@ NATS plays a **critical role** in Eventa's architecture as the primary mechanism
 3. **Message Processing**: When an event is received:
    - The event payload is parsed and validated
    - An `EventCreate` schema is constructed from the message
-   - The event is persisted to PostgreSQL via `EventService`
+   - The event is persisted to PostgreSQL via `EventRepository`
    - If the event contains a `user_id`, the worker attempts to fetch and onboard the user from Identies (if not already present)
 4. **Durability**: JetStream ensures message durability and supports:
    - Durable consumers for reliable message processing
@@ -177,7 +177,7 @@ When processing events via NATS, if an event contains a `user_id` that doesn't e
 
 1. The NATS worker fetches an M2M (machine-to-machine) token from Vaulta
 2. Uses the Identies client to fetch user information
-3. Creates a local `User` record using `UserService.onboard_user()`
+3. Creates a local `User` record using `UserRepository.onboard_user()`
 4. Associates the event with the newly onboarded user
 
 This ensures that user information is available for event queries and relationships, even if the user was never directly authenticated with Eventa.
@@ -191,19 +191,19 @@ The `AuthenticationMiddleware` processes incoming API requests:
 3. Onboards new users automatically if needed
 4. Attaches user context to requests for use in endpoints
 
-## Service Layer Architecture
+## Repository Layer Architecture
 
-### Service Pattern
+### Repository Pattern
 
-Services encapsulate business logic and database operations:
+Repositories encapsulate data access and database operations:
 
-- **EventService**: Event CRUD operations, filtering, and queries
+- **EventRepository**: Event CRUD operations, filtering, and queries
   - `create_event()`: Store new events
   - `get_events_by_user_id_query()`: Query events for a specific user
   - `get_events_by_tags_and_labels_query()`: Query events by tags and labels
   - `search()`: Dynamic filtering with various operators
   - Soft delete operations for event lifecycle management
-- **UserService**: User CRUD operations and onboarding
+- **UserRepository**: User CRUD operations and onboarding
   - `onboard_user()`: Create or update user from Identies
   - `get_user()`: Retrieve user by ID
   - User lifecycle management
@@ -386,7 +386,7 @@ With TimescaleDB extension:
 app/
 ├── models/          # SQLAlchemy models (Event, User)
 ├── schemas/         # Pydantic schemas (EventCreate, Event, etc.)
-├── services/        # Business logic (EventService, UserService)
+├── repositories/    # Data access (EventRepository, UserRepository)
 ├── routers/         # API endpoints (event, user)
 ├── messaging/       # NATS integration (nats_subscriber)
 ├── middleware/      # Request middleware (db_session, auth)

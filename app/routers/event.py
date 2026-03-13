@@ -9,7 +9,7 @@ from fastapi_pagination.ext.sqlalchemy import paginate  # type: ignore[import-no
 
 from app.db import get_db
 from app.schemas.event import Event
-from app.services.event_service import EventService
+from app.repositories.event_repository import EventRepository
 from app.auth.rbac import build_rbac_dependencies
 from fastapi import Request
 
@@ -89,7 +89,7 @@ def list_events(
                 detail="labels parameter must be valid JSON",
             )
 
-    query = EventService(db).get_events_by_tags_and_labels_query(
+    query = EventRepository(db).get_events_by_tags_and_labels_query(
         tags=tags, labels=labels_payload, privy=False, project_id=project_id
     )
     return paginate(db, query, params)
@@ -101,7 +101,7 @@ def get_event(
     db: Session = Depends(get_db),
     _authorized: bool = Depends(admin_rbac["read"]),
 ):
-    event = EventService(db).get_event(event_id=event_id)
+    event = EventRepository(db).get_event(event_id=event_id)
     if event is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -150,7 +150,7 @@ def list_project_events(
                 detail="labels parameter must be valid JSON",
             )
 
-    query = EventService(db).get_events_by_tags_and_labels_query(
+    query = EventRepository(db).get_events_by_tags_and_labels_query(
         tags=tags,
         labels=labels_payload,
         privy=False,
@@ -170,5 +170,5 @@ def list_user_events(
     db: Session = Depends(get_db),
     _authorized: bool = Depends(admin_rbac["read"]),
 ):
-    query = EventService(db).get_events_by_user_id_query(user_id=user_id)
+    query = EventRepository(db).get_events_by_user_id_query(user_id=user_id)
     return paginate(db, query, params)

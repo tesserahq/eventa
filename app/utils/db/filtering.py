@@ -23,7 +23,7 @@ def apply_filters(query: Query, model: Any, filters: Dict[str, Any]) -> Query:
     Dynamically applies SQLAlchemy filters to a query based on a dictionary input.
 
     This function allows flexible field-level filtering with support for various SQL operators.
-    It can be reused across services to consistently apply filter logic to SQLAlchemy models.
+    It can be reused across repositories to consistently apply filter logic to SQLAlchemy models.
 
     Args:
         query (Query): The initial SQLAlchemy query object.

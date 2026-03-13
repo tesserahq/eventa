@@ -5,7 +5,7 @@ from fastapi_pagination.ext.sqlalchemy import paginate  # type: ignore[import-no
 
 from app.db import get_db
 from app.schemas.event import Event
-from app.services.event_service import EventService
+from app.repositories.event_repository import EventRepository
 from tessera_sdk.utils.auth import get_current_user
 from app.models.user import User
 
@@ -23,5 +23,5 @@ def list_my_events(
     current_user: User = Depends(get_current_user),
 ):
     """Return events for the current authenticated user."""
-    query = EventService(db).get_events_by_user_id_query(user_id=current_user.id)  # type: ignore[arg-type]
+    query = EventRepository(db).get_events_by_user_id_query(user_id=current_user.id)  # type: ignore[arg-type]
     return paginate(db, query, params)

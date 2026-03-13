@@ -2,14 +2,15 @@ from typing import List, Optional, Dict, Any
 from uuid import UUID
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
+
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate, UserOnboard
 from app.utils.db.filtering import apply_filters
-from app.services.soft_delete_service import SoftDeleteService
-from sqlalchemy import or_
+from app.repositories.soft_delete_repository import SoftDeleteRepository
 
 
-class UserService(SoftDeleteService[User]):
+class UserRepository(SoftDeleteRepository[User]):
     def __init__(self, db: Session):
         super().__init__(db, User)
 

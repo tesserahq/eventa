@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from app.models.event import Event
 from app.schemas.event import EventCreate, EventUpdate
-from app.services.event_service import EventService
+from app.repositories.event_repository import EventRepository
 
 
 def _build_event_create(faker) -> EventCreate:
@@ -22,10 +22,10 @@ def _build_event_create(faker) -> EventCreate:
 
 
 def test_create_event(db, faker):
-    service = EventService(db)
+    repository = EventRepository(db)
     payload = _build_event_create(faker)
 
-    created = service.create_event(payload)
+    created = repository.create_event(payload)
 
     assert created.id is not None
     assert created.source == payload.source
@@ -33,16 +33,16 @@ def test_create_event(db, faker):
 
 
 def test_get_event(db, setup_event):
-    service = EventService(db)
+    repository = EventRepository(db)
 
-    fetched = service.get_event(setup_event.id)
+    fetched = repository.get_event(setup_event.id)
 
     assert fetched is not None
     assert fetched.id == setup_event.id
 
 
 def test_update_event(db, faker, setup_event):
-    service = EventService(db)
+    repository = EventRepository(db)
     new_subject = faker.sentence(nb_words=4)
     update_payload = EventUpdate(
         subject=new_subject,
@@ -50,7 +50,7 @@ def test_update_event(db, faker, setup_event):
         labels={"priority": "high"},
     )
 
-    updated = service.update_event(setup_event.id, update_payload)
+    updated = repository.update_event(setup_event.id, update_payload)
 
     assert updated is not None
     assert updated.subject == new_subject
@@ -59,9 +59,9 @@ def test_update_event(db, faker, setup_event):
 
 
 def test_delete_event(db, setup_event):
-    service = EventService(db)
+    repository = EventRepository(db)
 
-    result = service.delete_event(setup_event.id)
+    result = repository.delete_event(setup_event.id)
 
     assert result is True
 
@@ -76,26 +76,26 @@ def test_delete_event(db, setup_event):
 
 
 def test_search_events(db, setup_event_factory):
-    service = EventService(db)
+    repository = EventRepository(db)
     target_event = setup_event_factory(event_type="user.created", subject="user signup")
     setup_event_factory(event_type="system.alert", subject="system down")
 
-    results = service.search({"event_type": "user.created"})
+    results = repository.search({"event_type": "user.created"})
 
     assert len(results) == 1
     assert results[0].id == target_event.id
 
 
 def test_get_events_by_tags_and_labels(db, setup_event_factory):
-    service = EventService(db)
+    repository = EventRepository(db)
     matching = setup_event_factory(tags=["alpha", "beta"], labels={"category": "news"})
     second = setup_event_factory(tags=["alpha"], labels={"category": "news"})
     third = setup_event_factory(tags=["alpha", "beta"], labels={"category": "ops"})
 
-    events_by_tags = service.get_events_by_tags_and_labels(tags=["alpha", "beta"])
+    events_by_tags = repository.get_events_by_tags_and_labels(tags=["alpha", "beta"])
     assert {event.id for event in events_by_tags} == {matching.id, third.id}
 
-    events_with_labels = service.get_events_by_tags_and_labels(
+    events_with_labels = repository.get_events_by_tags_and_labels(
         tags=["alpha"], labels={"category": "news"}
     )
     assert {event.id for event in events_with_labels} == {matching.id, second.id}
