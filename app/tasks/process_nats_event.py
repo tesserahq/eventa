@@ -11,8 +11,8 @@ from app.schemas.event import EventCreate
 from app.schemas.user import UserOnboard
 from app.services.event_service import EventService
 from app.services.user_service import UserService
-from tessera_sdk import IdentiesClient
-from tessera_sdk.utils.m2m_token import M2MTokenClient
+from tessera_sdk.clients.identies import IdentiesClient
+from tessera_sdk.infra.m2m_token import M2MTokenClient
 
 logger = get_logger("process_nats_event_task")
 

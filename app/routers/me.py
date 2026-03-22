@@ -6,7 +6,7 @@ from fastapi_pagination.ext.sqlalchemy import paginate  # type: ignore[import-no
 from app.db import get_db
 from app.schemas.event import Event
 from app.services.event_service import EventService
-from tessera_sdk.utils.auth import get_current_user
+from tessera_sdk.server.dependencies.auth import get_current_user
 from app.models.user import User
 
 router = APIRouter(
