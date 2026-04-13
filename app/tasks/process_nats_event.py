@@ -13,6 +13,10 @@ from app.services.event_service import EventService
 from app.services.user_service import UserService
 from tessera_sdk.clients.identies import IdentiesClient
 from tessera_sdk.infra.m2m_token import M2MTokenClient
+from app.utils.db.db_session_helper import db_session
+from tessera_sdk.infra.events import Event
+from pydantic import ValidationError
+from tessera_sdk.infra import AuthTokenProvider
 
 logger = get_logger("process_nats_event_task")
 
@@ -22,8 +26,13 @@ def process_nats_event_task(msg: dict) -> None:
     """Handle incoming NATS events and store them in the database."""
     logger.info(f"Processing NATS event: {msg}")
 
-    db = SessionLocal()
     try:
+        event = Event.model_validate(msg)
+    except ValidationError as e:
+        logger.warning("Invalid NATS event payload: %s", e)
+        return None
+
+    with db_session() as db:
         # Parse time if it's a string
         time_value = msg.get("time")
         if isinstance(time_value, str):
@@ -33,18 +42,18 @@ def process_nats_event_task(msg: dict) -> None:
 
         # Extract specific fields from the event for model columns
         event_create = EventCreate(
-            source=msg.get("source", ""),
-            spec_version=msg.get("spec_version", "1.0"),
-            event_type=msg.get("event_type", ""),
-            event_data=msg.get("event_data"),  # Store entire event here
-            data_content_type=msg.get("data_content_type", "application/json"),
-            subject=msg.get("subject", ""),
-            time=time_value,
-            tags=msg.get("tags"),
-            labels=msg.get("labels"),
-            privy=msg.get("privy", False),  # Default to False if not provided
-            user_id=msg.get("user_id"),
-            project_id=msg.get("project_id"),
+            source=event.source,
+            spec_version=event.spec_version,
+            event_type=event.event_type,
+            event_data=event.event_data,
+            data_content_type=event.data_content_type,
+            subject=event.subject,
+            time=event.time,
+            tags=event.tags,
+            labels=event.labels,
+            privy=event.privy,
+            user_id=event.user_id,
+            project_id=event.project_id,
         )
 
         # Create event using EventService
@@ -52,36 +61,29 @@ def process_nats_event_task(msg: dict) -> None:
         created_event = event_service.create_event(event_create)
 
         # Ensure user is onboarded if user_id is provided
-        user_id = msg.get("user_id")
+        user_id = event.user_id
         if user_id:
             _ensure_user_onboarded(db, user_id)
 
         logger.info(f"Event created successfully: {created_event.id}")
-    except Exception as e:
-        logger.error(f"Error creating event: {e}", exc_info=True)
-        db.rollback()
-        raise
-    finally:
-        db.close()
 
 
-def _ensure_user_onboarded(db: Session, user_id: str) -> None:
+def _ensure_user_onboarded(db: Session, user_id: UUID) -> None:
     """
     Ensure a user is onboarded by checking if they exist locally,
     and if not, fetching from Identies and onboarding them.
     """
     try:
         user_service = UserService(db)
-        user_uuid = UUID(user_id)
-
+        logger.info(f"Ensuring user is onboarded: {user_id}")
         # Check if user is already onboarded
-        existing_user = user_service.get_user(user_uuid)
+        existing_user = user_service.get_user(user_id)
         if existing_user:
             logger.debug(f"User already onboarded: {user_id}")
             return
 
         # User doesn't exist, fetch from Identies and onboard
-        m2m_token = _get_m2m_token()
+        m2m_token = _get_auth_token()
         identies_client = IdentiesClient(
             # TODO: This is a temporary solution, we need to move this into jobs
             timeout=320,  # Shorter timeout for middleware
@@ -108,8 +110,8 @@ def _ensure_user_onboarded(db: Session, user_id: str) -> None:
         logger.error(f"Error fetching/onboarding user: {e}", exc_info=True)
 
 
-def _get_m2m_token() -> str:
+def _get_auth_token() -> str:
     """
     Get an M2M token for Quore.
     """
-    return M2MTokenClient().get_token_sync().access_token
+    return AuthTokenProvider().get_token()
