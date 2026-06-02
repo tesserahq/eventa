@@ -3,16 +3,13 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.config import get_settings
 from app.core.celery_app import celery_app
 from app.core.logging_config import get_logger
-from app.db import SessionLocal
 from app.schemas.event import EventCreate
 from app.schemas.user import UserOnboard
 from app.services.event_service import EventService
 from app.services.user_service import UserService
 from tessera_sdk.clients.identies import IdentiesClient
-from tessera_sdk.infra.m2m_token import M2MTokenClient
 from app.utils.db.db_session_helper import db_session
 from tessera_sdk.infra.events import Event
 from pydantic import ValidationError
