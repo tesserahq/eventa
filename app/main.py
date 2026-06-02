@@ -21,7 +21,7 @@ from app.core.logging_config import get_logger
 from app.db import db_manager
 from app.utils.metrics import PrometheusMiddleware, metrics
 
-SKIP_AUTH_PATHS = ["/livez", "/readyz", "/openapi.json", "/docs", "/metrics"]
+SKIP_AUTH_PATHS = ["/livez", "/readyz", "/metrics"]
 
 
 class EndpointFilter(logging.Filter):
