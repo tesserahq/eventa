@@ -19,7 +19,6 @@ from app.telemetry import setup_tracing
 from app.exceptions.handlers import register_exception_handlers
 from app.core.logging_config import get_logger
 from app.db import db_manager
-from app.utils.metrics import PrometheusMiddleware, metrics
 
 SKIP_AUTH_PATHS = ["/livez", "/readyz", "/metrics"]
 
@@ -74,10 +73,6 @@ def create_app(testing: bool = False, auth_middleware=None) -> FastAPI:
             skip_paths=SKIP_AUTH_PATHS,
             user_service_factory=user_service_factory,
         )
-
-        # Setting metrics middleware
-        app.add_middleware(PrometheusMiddleware, app_name=settings.app_name)
-        app.add_route("/metrics", metrics)
 
     else:
         logger.info("Main: No authentication middleware")
