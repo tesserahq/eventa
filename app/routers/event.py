@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from fastapi_pagination import Page, Params  # type: ignore[import-not-found]
 from fastapi_pagination.ext.sqlalchemy import paginate  # type: ignore[import-not-found]
 
-from app.db import get_db
+from app.db import DbSession
 from app.schemas.event import Event
 from app.services.event_service import EventService
 from app.auth.rbac import build_rbac_dependencies
@@ -50,27 +50,20 @@ admin_rbac = build_rbac_dependencies(
 
 
 @router.get("/events", response_model=Page[Event], status_code=status.HTTP_200_OK)
-def list_events(
-    project_id: Annotated[
+def list_events(db: DbSession, project_id: Annotated[
         Optional[UUID],
         Query(description="Project ID to filter events by"),
-    ] = None,
-    tags: Annotated[
+    ] = None, tags: Annotated[
         Optional[List[str]],
         Query(
             description="Event tags to match (requires at least one tag if provided)"
         ),
-    ] = None,
-    labels: Annotated[
+    ] = None, labels: Annotated[
         Optional[str],
         Query(
             description="Optional JSON object containing label key/value pairs to match"
         ),
-    ] = None,
-    params: Params = Depends(),
-    db: Session = Depends(get_db),
-    _authorized: bool = Depends(rbac["read"]),
-):
+    ] = None, params: Params = Depends(), _authorized: bool = Depends(rbac["read"])):
     """Return events filtered by user_id OR by tags/labels (not both)."""
 
     labels_payload: Optional[Dict[str, Any]] = None
@@ -98,7 +91,7 @@ def list_events(
 @router.get("/events/{event_id}", response_model=Event, status_code=status.HTTP_200_OK)
 def get_event(
     event_id: UUID,
-    db: Session = Depends(get_db),
+    db: DbSession,
     _authorized: bool = Depends(admin_rbac["read"]),
 ):
     event = EventService(db).get_event(event_id=event_id)
@@ -116,24 +109,17 @@ def get_event(
     response_model=Page[Event],
     status_code=status.HTTP_200_OK,
 )
-def list_project_events(
-    project_id: UUID,
-    tags: Annotated[
+def list_project_events(project_id: UUID, db: DbSession, tags: Annotated[
         Optional[List[str]],
         Query(
             description="Event tags to match (requires at least one tag if provided)"
         ),
-    ] = None,
-    labels: Annotated[
+    ] = None, labels: Annotated[
         Optional[str],
         Query(
             description="Optional JSON object containing label key/value pairs to match"
         ),
-    ] = None,
-    params: Params = Depends(),
-    db: Session = Depends(get_db),
-    _authorized: bool = Depends(admin_rbac["read"]),
-):
+    ] = None, params: Params = Depends(), _authorized: bool = Depends(admin_rbac["read"])):
     labels_payload: Optional[Dict[str, Any]] = None
     if labels:
         try:
@@ -164,11 +150,6 @@ def list_project_events(
     response_model=Page[Event],
     status_code=status.HTTP_200_OK,
 )
-def list_user_events(
-    user_id: UUID,
-    params: Params = Depends(),
-    db: Session = Depends(get_db),
-    _authorized: bool = Depends(admin_rbac["read"]),
-):
+def list_user_events(user_id: UUID, db: DbSession, params: Params = Depends(), _authorized: bool = Depends(admin_rbac["read"])):
     query = EventService(db).get_events_by_user_id_query(user_id=user_id)
     return paginate(db, query, params)

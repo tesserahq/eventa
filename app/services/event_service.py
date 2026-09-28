@@ -81,7 +81,7 @@ class EventService(SoftDeleteService[Event]):
         """
         db_event = Event(**event.model_dump())
         self.db.add(db_event)
-        self.db.commit()
+        self.db.flush()
         self.db.refresh(db_event)
         # Eager load user relationship after refresh
         return (
@@ -112,7 +112,7 @@ class EventService(SoftDeleteService[Event]):
             update_data = event.model_dump(exclude_unset=True)
             for key, value in update_data.items():
                 setattr(db_event, key, value)
-            self.db.commit()
+            self.db.flush()
             self.db.refresh(db_event)
         return db_event
 
