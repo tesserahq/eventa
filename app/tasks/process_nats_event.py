@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from uuid import UUID
 
-from sqlalchemy.orm import Session
 
 from app.core.celery_app import celery_app
 from app.core.logging_config import get_logger
@@ -10,7 +9,7 @@ from app.schemas.user import UserOnboard
 from app.services.event_service import EventService
 from app.services.user_service import UserService
 from tessera_sdk.clients.identies import IdentiesClient
-from app.utils.db.db_session_helper import db_session
+from app.db import session_scope
 from tessera_sdk.infra.events import Event
 from pydantic import ValidationError
 from tessera_sdk.infra import AuthTokenProvider
@@ -29,14 +28,9 @@ def process_nats_event_task(msg: dict) -> None:
         logger.warning("Invalid NATS event payload: %s", e)
         return None
 
-    with db_session() as db:
-        # Parse time if it's a string
-        time_value = msg.get("time")
-        if isinstance(time_value, str):
-            time_value = datetime.fromisoformat(time_value.replace("Z", "+00:00"))
-        elif time_value is None:
-            time_value = datetime.now(timezone.utc)
-
+    # Phase 1: store the event. It commits on its own, so a failure to
+    # onboard the user below can never lose it.
+    with session_scope() as db:
         # Extract specific fields from the event for model columns
         event_create = EventCreate(
             source=event.source,
@@ -45,7 +39,8 @@ def process_nats_event_task(msg: dict) -> None:
             event_data=event.event_data,
             data_content_type=event.data_content_type,
             subject=event.subject,
-            time=event.time,
+            # A missing time defaults to when the event was received.
+            time=event.time or datetime.now(timezone.utc),
             tags=event.tags,
             labels=event.labels,
             privy=event.privy,
@@ -53,58 +48,63 @@ def process_nats_event_task(msg: dict) -> None:
             project_id=event.project_id,
         )
 
-        # Create event using EventService
-        event_service = EventService(db)
-        created_event = event_service.create_event(event_create)
+        created_event = EventService(db).create_event(event_create)
+        event_id = created_event.id
+        needs_onboarding = bool(event.user_id) and (
+            UserService(db).get_user(event.user_id) is None
+        )
 
-        # Ensure user is onboarded if user_id is provided
-        user_id = event.user_id
-        if user_id:
-            _ensure_user_onboarded(db, user_id)
+    logger.info(f"Event created successfully: {event_id}")
 
-        logger.info(f"Event created successfully: {created_event.id}")
+    # Phase 2: onboard an unknown user. Identies is called with no database
+    # transaction open.
+    if needs_onboarding:
+        _onboard_user(event.user_id)
 
 
-def _ensure_user_onboarded(db: Session, user_id: UUID) -> None:
+def _onboard_user(user_id: UUID) -> None:
     """
-    Ensure a user is onboarded by checking if they exist locally,
-    and if not, fetching from Identies and onboarding them.
+    Fetch a user from Identies and onboard them locally. Best effort: errors
+    are logged, and the next event for this user tries again.
     """
     try:
-        user_service = UserService(db)
-        logger.info(f"Ensuring user is onboarded: {user_id}")
-        # Check if user is already onboarded
-        existing_user = user_service.get_user(user_id)
-        if existing_user:
-            logger.debug(f"User already onboarded: {user_id}")
-            return
-
-        # User doesn't exist, fetch from Identies and onboard
-        m2m_token = _get_auth_token()
-        identies_client = IdentiesClient(
-            # TODO: This is a temporary solution, we need to move this into jobs
-            timeout=320,  # Shorter timeout for middleware
-            api_token=m2m_token,
-        )
-
-        identies_user = identies_client.get_user(user_id)
-        user = UserOnboard(
-            id=UUID(identies_user.id),
-            email=identies_user.email,
-            first_name=identies_user.first_name,
-            last_name=identies_user.last_name,
-            avatar_url=identies_user.avatar_url,
-            provider=identies_user.provider,
-            verified=identies_user.verified,
-            verified_at=identies_user.verified_at,
-            confirmed_at=identies_user.confirmed_at,
-            external_id=identies_user.external_id,
-        )
-        user_service.onboard_user(user)
-        logger.info(f"User onboarded successfully: {user.id}")
+        logger.info(f"Onboarding user from Identies: {user_id}")
+        identies_user = _fetch_identies_user(user_id)
+        with session_scope() as db:
+            user_service = UserService(db)
+            # Another event for the same user may have onboarded them while
+            # Identies was being called.
+            if user_service.get_user(user_id) is not None:
+                logger.debug(f"User already onboarded: {user_id}")
+                return
+            user_service.onboard_user(identies_user)
+        logger.info(f"User onboarded successfully: {user_id}")
     except Exception as e:
         # Log error but don't fail the event processing
         logger.error(f"Error fetching/onboarding user: {e}", exc_info=True)
+
+
+def _fetch_identies_user(user_id: UUID) -> UserOnboard:
+    """Read a user from Identies. No database access."""
+    identies_client = IdentiesClient(
+        # TODO: This is a temporary solution, we need to move this into jobs
+        timeout=320,  # Shorter timeout for middleware
+        api_token=_get_auth_token(),
+    )
+
+    identies_user = identies_client.get_user(user_id)
+    return UserOnboard(
+        id=UUID(identies_user.id),
+        email=identies_user.email,
+        first_name=identies_user.first_name,
+        last_name=identies_user.last_name,
+        avatar_url=identies_user.avatar_url,
+        provider=identies_user.provider,
+        verified=identies_user.verified,
+        verified_at=identies_user.verified_at,
+        confirmed_at=identies_user.confirmed_at,
+        external_id=identies_user.external_id,
+    )
 
 
 def _get_auth_token() -> str:

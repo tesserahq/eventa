@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from fastapi_pagination import Page, Params  # type: ignore[import-not-found]
 from fastapi_pagination.ext.sqlalchemy import paginate  # type: ignore[import-not-found]
 
-from app.db import get_db
+from app.db import DbSession
 from app.schemas.event import Event
 from app.services.event_service import EventService
 from tessera_sdk.server.dependencies.auth import get_current_user
@@ -18,8 +18,8 @@ router = APIRouter(
 
 @router.get("/me", response_model=Page[Event], status_code=status.HTTP_200_OK)
 def list_my_events(
+    db: DbSession,
     params: Params = Depends(),
-    db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Return events for the current authenticated user."""
