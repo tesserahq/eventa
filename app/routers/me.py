@@ -17,7 +17,11 @@ router = APIRouter(
 
 
 @router.get("/me", response_model=Page[Event], status_code=status.HTTP_200_OK)
-def list_my_events(db: DbSession, params: Params = Depends(), current_user: User = Depends(get_current_user)):
+def list_my_events(
+    db: DbSession,
+    params: Params = Depends(),
+    current_user: User = Depends(get_current_user),
+):
     """Return events for the current authenticated user."""
     query = EventService(db).get_events_by_user_id_query(user_id=current_user.id)  # type: ignore[arg-type]
     return paginate(db, query, params)

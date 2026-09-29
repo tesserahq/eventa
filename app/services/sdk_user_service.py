@@ -11,8 +11,6 @@ from app.services.user_service import UserService
 
 create_sdk_user_service = create_managed_user_service_factory(
     db_manager,
-    get_user=lambda db, user_id: UserService(db).get_user_by_id_or_external_id(
-        user_id
-    ),
+    get_user=lambda db, user_id: UserService(db).get_user_by_id_or_external_id(user_id),
     onboard_user=lambda db, user_data: UserService(db).onboard_user(user_data),
 )
