@@ -39,7 +39,7 @@ jobs:
       ENV: test
       ROLLBAR_ACCESS_TOKEN: 7cd9dd0b5df9462b8ebdfb522af61cd2
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Wait for DB to be ready
         run: |
           for i in {1..5}; do
@@ -51,7 +51,7 @@ jobs:
             sleep 2
           done
       - name: Set up Python 3
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: 3.14
       - name: Install dependencies
