@@ -32,7 +32,7 @@ alembic = "^1.18.3"
 faker = "40.40.0"
 psycopg2-binary = "^2.9.10"
 pydantic = {extras = ["email"], version = "^2.11.3"}
-black = "^26.3.1"
+black = "^26.10.1"
 ruff = "0.15.5"
 pydantic-settings = "^2.9.1"
 python-jose = "^3.3.0"
